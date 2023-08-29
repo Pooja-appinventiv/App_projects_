@@ -8,8 +8,14 @@ import { EventModule } from './modules/event/event.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
-
-// import { SwaggerModule } from '@nestjs/swagger';
+import path from 'path';
+import {
+  AcceptLanguageResolver,
+  I18nJsonLoader,
+  I18nModule,
+  QueryResolver,
+} from 'nestjs-i18n';
+import { RabbitMQService } from './modules/rabbitmq/rabbitmq.service';
 
 @Module({
   imports: [
@@ -27,12 +33,24 @@ import * as redisStore from 'cache-manager-redis-store';
       port: 6379,
       ttl: 200000,
     }),
+    I18nModule.forRoot({
+      fallbackLanguage: 'en',
+      loaderOptions: {
+        path: '/home/admin96/Videos/appinventive_projects/virtual_event_management_system/App_projects_/src/i18n/',
+        watch: true,
+      },
+      resolvers: [
+        { use: QueryResolver, options: ['lang'] },
+        AcceptLanguageResolver,
+      ],
+    })
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService,RabbitMQService],
 })
 export class AppModule {
   constructor() {
     console.log('This is app module');
+    
   }
 }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsEmail, MinLength } from 'class-validator';
+import { IsNotEmpty, IsEmail, MinLength, IsString } from 'class-validator';
 //data transfer objects
 export class CreateUserDto {
   @IsNotEmpty()
@@ -11,6 +11,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MinLength(6)
   password: string;
+
+  // @IsNotEmpty()
+  // hasTwoFactorAuth: boolean;
 
   interest: [string];
 }
@@ -25,4 +28,13 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   @MinLength(6)
   newPassword: string;
+}
+export class VerifyDto {
+  @IsNotEmpty()
+  @IsString()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  otp: string;
 }

@@ -9,8 +9,9 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { updateuserDto } from './dto/updatedto';
-import * as speakeasy from 'speakeasy';
-import * as qrcode from 'qrcode';
+import { VerifyDto } from './dto/createuserdetails';
+// import * as speakeasy from 'speakeasy';
+// import * as qrcode from 'qrcode';
 // import { Event } from './eventschema';
 @Injectable()
 export class UserService {
@@ -107,16 +108,11 @@ export class UserService {
 
     return user;
   }
-  async generateSecretKey(userId: string): Promise<string> {
-    const secret = speakeasy.generateSecret();
-    const user = await this.userModel.findById(userId);
-    user.secretKey = secret.base32;
-    await user.save();
-    return secret.otpauth_url;
+  async findOneByEmail(email: string): Promise<user | null> {
+    const user = await this.userModel.findOne({ email });
+    // console.log(user)
+    return user;
   }
 
-  async generateQRCode(url: string): Promise<string> {
-    return qrcode.toDataURL(url);
-  }
 
 }
