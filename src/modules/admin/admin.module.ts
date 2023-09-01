@@ -6,12 +6,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { admin, admin_schema } from './adminschema';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from 'src/middleware/jwt.strategy';
-
+import { ConfigModule } from '@nestjs/config';
+ConfigModule.forRoot()
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: admin.name, schema: admin_schema }]),
     JwtModule.register({
-      secret: 'pooja',
+      secret:process.env.JWT,
       signOptions: { expiresIn: '1h' },
     }),
   ],

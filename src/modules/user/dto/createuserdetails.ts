@@ -1,7 +1,12 @@
-import { IsNotEmpty, IsEmail, MinLength, IsString } from 'class-validator';
+import { IsNotEmpty, IsEmail, MinLength, IsString, IsEnum, IsOptional } from 'class-validator';
 //data transfer objects
+
+// enum TwoFaType{
+//   email='email',
+// }
 export class CreateUserDto {
-  @IsNotEmpty()
+  // @IsNotEmpty()
+  @IsOptional()
   username: string;
 
   @IsNotEmpty()
@@ -9,13 +14,21 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(4)
   password: string;
+  
 
+
+  // @IsEnum(TwoFaType)    
+  // hasTwoFactorAuth: TwoFaType;
   // @IsNotEmpty()
   // hasTwoFactorAuth: boolean;
 
   interest: [string];
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  otp: string;
 }
 export class ResetPasswordDto {
   @IsNotEmpty()
@@ -26,7 +39,7 @@ export class ResetPasswordDto {
   email: string;
 
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(5)
   newPassword: string;
 }
 export class VerifyDto {

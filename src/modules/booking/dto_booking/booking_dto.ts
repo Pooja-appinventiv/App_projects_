@@ -1,6 +1,7 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsDate, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateBookingDto {
+  
   @IsNotEmpty()
   @IsString()
   user_id: string;
@@ -16,5 +17,9 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsString()
   event_name: string;
+  @IsNotEmpty()
+  @IsDate()
+  start_time: Date;
+  
   
 }

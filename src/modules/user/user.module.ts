@@ -7,18 +7,21 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from 'src/middleware/jwt.strategy';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EventSchema } from 'src/modules/event/eventschema';
-import { AuthService } from 'src/basic_auth/basic.auth.guard';
-import { BasicAuthGuard } from 'src/basic_auth/basic.auth.strategy';
+import { AuthService } from 'src/middleware/basic_auth/basic.auth.guard';
+import { BasicAuthGuard } from 'src/middleware/basic_auth/basic.auth.strategy';
+import { ConfigModule } from '@nestjs/config';
+ConfigModule.forRoot()
 
 @Module({
   imports: [
+
     MongooseModule.forFeature([
       { name: user.name, schema: user_schema },
       { name: Event.name, schema: EventSchema },
     ]),
 
     JwtModule.register({
-      secret: 'pooja',
+      secret: process.env.JWT,
       signOptions: { expiresIn: '1h' },
     }),
     MailerModule.forRootAsync({
@@ -26,8 +29,8 @@ import { BasicAuthGuard } from 'src/basic_auth/basic.auth.strategy';
         transport: {
           host: 'smtp.gmail.com',
           auth: {
-            user: 'poojantech11@gmail.com',
-            pass: 'hddntnesorjapeog',
+            user: process.env.EMAILSERVICE_USER,
+            pass: process.env.EMAILSERVICE_SECRET_PASSCODE,
           },
         },
       }),

@@ -7,9 +7,10 @@ import { Booking } from './bookingschema';
 import { AuthGuard } from '@nestjs/passport';
 import { EmailService } from './emailservice';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
-import * as cron from 'node-cron';
-import { PDFDocument } from 'pdf-lib';
-import { UserService } from '../user/user.service';
+import { I18n, I18nContext } from 'nestjs-i18n';
+import * as cron from 'node-cron'; 
+// import { Cron } from 'node-cron';
+
 @ApiTags('bookings')
 @Controller('booking')
 export class BookingController {
@@ -19,8 +20,7 @@ export class BookingController {
     private readonly eventservice: EventService,
     private readonly emailservice :EmailService,
     private readonly rabbitmqservice :RabbitMQService,
-  ) { cron.schedule('0 * * * *', () => this.sendEventReminders());}
-  
+  ) {}
   @UseGuards(AuthGuard('basic'))
   @Get('/getall')
   @ApiResponse({
@@ -34,60 +34,59 @@ export class BookingController {
     return { bookings };
   }
 
-  //creating booking for user for an event using the event id and user id
+  //creating booking for user for an event using the event_id and user_id
   @Post('/userbooking')
   @ApiBody({ type: CreateBookingDto })
   @ApiResponse({
     status: 200,
-    description: 'event created by admin successfully',
+    description: 'booking done succesfuly',
     type: String,
   })
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
   })
-  async createBooking(@Body() createBookingDto: CreateBookingDto) {
-    const { user_id, event_id,email, event_name } = createBookingDto;
+  async createBooking(@Body() createBookingDto: CreateBookingDto,@I18n() i18n: I18nContext) {
+    const { user_id, event_id,email, event_name,start_time} = createBookingDto;
     const data=await this.bookingservice.createBooking(user_id, event_id);
     console.log(data)
+    await this.emailservice.sendBookingConfirmation(email, event_name);
+
+  //node cron
+    const eventStartTime = new Date(start_time);
+    const reminderTime = new Date(eventStartTime.getTime() - 2 * 60 * 1000);
+    console.log(reminderTime)
+
+    // Schedule the task using cron expression to run every 2 minutes
+    const cronExpression = `*/1 * * * *`; // Every one minute
+    cron.schedule(cronExpression, async () => {
+      console.log("=========")
+      const currentTime = new Date();
+      if (currentTime >= reminderTime) {
+        console.log("BBBBB")
+        await this.emailservice.sendEventReminder(email, event_name);
+      }
+    });
+
+    //rabbit mqt
     const queueName = 'booking_queue';
     const bookingData = JSON.stringify(data);
-  
-    // Establish RabbitMQ connection and send booking data to queue
     await this.rabbitmqservice.connect();
     await this.rabbitmqservice.sendToQueue(queueName, bookingData);
     console.log('Data is sent to queue successfully');
-    //sending confirmation by email to user
-    await this.emailservice.sendBookingConfirmation(email, event_name);
-
-
     //extraction of data from the queue
     const channel = this.rabbitmqservice.getChannel();
     await channel.assertQueue(queueName);
     channel.consume(queueName, async (message) => {
       if (message) {
         const bookingData = JSON.parse(message.content.toString());
-        console.log(bookingData)
 
-        // Assuming you have a method to convert bookingData to PDF
+        //convert bookingData to PDF(buffer data)
         const pdfBuffer = await this.bookingservice.convertBookingDataToPDF(bookingData);
-        console.log(pdfBuffer);
-
-        // Send PDF to user's email using NodeMailer
         await this.emailservice.sendBookingPDF(email, pdfBuffer);
-
         channel.ack(message);
       }
     });
-
-
-    return { message: 'Booking created successfully.' };
-  }
-  
-  async sendEventReminders() {
-    const upcomingEvents = await this.bookingservice.getUpcomingEventsWithinHour();
-    for (const event of upcomingEvents) {
-      await this.emailservice.sendEventReminder(event.user.email, event.name);
-    }
+    return {message: i18n.t('test.Bookingcreatedsuccessfully')};
   }
 }

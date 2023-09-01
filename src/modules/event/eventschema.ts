@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 // import mongoose, { Document } from 'mongoose';
 
 export type EventDocument = Event & Document;
-
 @Schema()
 export class Event {
   @Prop({ required: true })
@@ -14,10 +13,10 @@ export class Event {
   @Prop({ required: true })
   type: string;
 
-  @Prop({ required: true })
-  start_time: Date;
+  @Prop({ required: true ,default: Date.now})
+  start_time:Date;
 
-  @Prop({ required: true })
+  @Prop({ required: true ,default: Date.now})
   end_time: Date;
 
   @Prop({ required: true })

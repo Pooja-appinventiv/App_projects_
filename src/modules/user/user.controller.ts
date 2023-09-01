@@ -12,6 +12,7 @@ import {
   Req,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { user } from './user.schema';
@@ -31,6 +32,8 @@ import { I18n, I18nContext } from 'nestjs-i18n';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import * as fs from 'fs-extra';
+import mongoose from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 
 
@@ -40,6 +43,7 @@ import * as fs from 'fs-extra';
 @UseInterceptors(ErrorInterceptor)
 export class UserController {
   constructor(
+    @InjectModel(user.name) private userModel: mongoose.Model<user>,
     public userService: UserService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache, // private readonly cacheManager: Cache,
@@ -50,10 +54,22 @@ export class UserController {
     status: 201,
     description: 'User registered successfully',
   })
-  async signup(@Body() user_details: CreateUserDto) {
-    const newUser = await this.userService.createUser(user_details);
+  async signup(@Body(new ValidationPipe()) user_details: CreateUserDto,@I18n() i18n: I18nContext) {
+    const { username, email } = user_details;
+    const isUsernameTaken = await this.userService.isUsernameTaken(username);
+  const isEmailTaken = await this.userService.isEmailTaken(email);
+  if (isUsernameTaken) {
+    return {message: i18n.t('test.Usernameisalreadytaken' )};
+  }
+  if (isEmailTaken) {
+    return {message: i18n.t('test.Emailisalreadyregistered') };
+  }
+  const newUser = await this.userService.createUser(user_details);
+  return { message: i18n.t('test.User registered successfully'), user: newUser };
+    // const newUser = await this.userService.createUser(user_details);
     return { message: 'User registered successfully', user: newUser };
   }
+
   @UseGuards(AuthGuard('basic'))
   @Get('/getall')
   @ApiResponse({
@@ -65,6 +81,8 @@ export class UserController {
   async getalluser(): Promise<user[]> {
     return this.userService.findall();
   }
+
+
   @Post('/login')
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({
@@ -76,6 +94,8 @@ export class UserController {
     status: 401,
     description: 'Unauthorized',
   })
+  //use new ValidationPipe() for validation
+  //first generate otp api hit for qr code ten hit login api 
   async login(@Body() loginDto: CreateUserDto,@I18n() i18n: I18nContext) {
     const user = await this.userService.loginuser(loginDto.email);
     console.log(user);
@@ -87,14 +107,48 @@ export class UserController {
     if (!isPasswordValid) {
       throw new HttpException(i18n.t("test.unauthorize"), HttpStatus.UNAUTHORIZED);
     } 
-//two way authentication -2FA
+    //token generationn
+     
+    const payload = {
+      sub: user['_id'], // Use the MongoDB-generated _id as the subject (sub) of the token
+      email: user.email,
+      username: user.username,
+    };
+
+    const token = this.jwtService.sign(payload);
+    console.log(token)
+
+    // const token = this.jwtService.sign({
+    //   email: user.email,
+    //   username: user.username,
+    // });
+
+    // if (!user || user.password !== loginDto.password) {
+    //   throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    // }
+    // await this.cacheManager.set(`user:${user['_id']}`, payload, { ttl: 3600 });
+    
+
+    await this.cacheManager.set(`user:${user['email']}`, true); 
+    // Set a TTL of 1hour
+    if ( user.secretKey) {
+      console.log(user.secretKey)
+      console.log(loginDto.otp)
+      const isOTPValid = await this.userService.verifyOTP(user, loginDto.otp);
+  
+      if (!isOTPValid) {
+        throw new HttpException(i18n.t('test.invalidOTP'), HttpStatus.BAD_REQUEST);
+      }
+    }
+    
+    ///generation of the qr code fo for the 2fa
     // if (user.hasTwoFactorAuth === true) {
     //   if (!user.secretKey) {
     //     const secret = speakeasy.generateSecret();
     //     const otpauth_url = speakeasy.otpauthURL({
     //       secret: secret.base32,
     //       label: user.email,
-    //       issuer: 'MyApp',
+    //       issuer: 'google auth',
     //     });
     
     //     user.secretKey = secret.base32;
@@ -110,57 +164,12 @@ export class UserController {
     
     //     return { message: 'Please scan the QR code with your authenticator app', qrCodeImage };
     //   }
-    //   return { message: 'Please provide OTP code' };
+    //   return { message: 'Please provide OTP code'};
     // }
-    //token generationn
-     
-    const payload = {
-      sub: user['_id'], // Use the MongoDB-generated _id as the subject (sub) of the token
-      email: user.email,
-      username: user.username,
-    };
-
-    const token = this.jwtService.sign(payload);
-
-    // const token = this.jwtService.sign({
-    //   email: user.email,
-    //   username: user.username,
-    // });
-
-    // if (!user || user.password !== loginDto.password) {
-    //   throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
-    // }
-    // await this.cacheManager.set(`user:${user['_id']}`, payload, { ttl: 3600 });
-    await this.cacheManager.set(`user:${user['email']}`, true); // Set a TTL of 1 hour
-    // Set a TTL of 1 hour
-    if (user.hasTwoFactorAuth === true) {
-      if (!user.secretKey) {
-        const secret = speakeasy.generateSecret();
-        const otpauth_url = speakeasy.otpauthURL({
-          secret: secret.base32,
-          label: user.email,
-          issuer: 'MyApp',
-        });
-    
-        user.secretKey = secret.base32;
-        // user.otpauthUrl = otpauth_url;
-        await user.save();
-        const qrCodeImage = await qrcode.toDataURL(otpauth_url);
-         // Convert the base64 image to binary data
-    const imageData = qrCodeImage.replace(/^data:image\/png;base64,/, '');
-
-    // Save the image to a file
-    const imagePath = '/home/admin96/Videos/appinventive_projects/virtual_event_management_system/App_projects_/src/modules/user/qrcode.png'; // Change the path as needed
-    await fs.writeFile(imagePath, imageData, 'base64');
-    
-        return { message: 'Please scan the QR code with your authenticator app', qrCodeImage ,token};
-      }
-      return { message: 'Please provide OTP code' ,user,token};
-    }
-
-
+    //verify the otp for 2fa
     return {message: i18n.t('test.loginSuccesfully'), user, token };
   }
+
 
   @UseGuards(JwtAuthGuard)
   @Get('/profile')
@@ -177,6 +186,7 @@ export class UserController {
     console.log('xyz');
     return req.user;
   }
+
 
   @UseGuards(AuthGuard('basic'))
   @Post('/generate-otp')
@@ -200,12 +210,11 @@ export class UserController {
     status: 200,
     description: 'Password reset successful',
   })
-  async resetPassword(
-    @Body() resetPasswordDto: ResetPasswordDto,
-  ): Promise<{ message: string }> {
+  async resetPassword( @Body() resetPasswordDto: ResetPasswordDto,@I18n() i18n: I18nContext): Promise<{ message: string }> {
     const message = await this.userService.resetPassword(resetPasswordDto);
     return { message };
   }
+
   @Post('/logout')
   @ApiBody({ type: logoutDtoDto })
   @ApiResponse({
@@ -221,10 +230,11 @@ export class UserController {
     const email = logoutDto.email;
     await this.userService.clearUserCache(email);
 
-    return { message: i18n.t("test.Logged out successfully") };
+    return { message: i18n.t("test.Loggedoutsuccessfully") };
   }
+
   @Get(':userId/recommenduser')
-  async recommendEvents(@Param('userId') userId: string): Promise<Event[]> {
+  async recommendEvents(@Param('userId') userId: string,@I18n() i18n: I18nContext): Promise<Event[]> {
     const recommendedEvents = await this.userService.recommendEventsForUser(
       userId,
     );
@@ -235,7 +245,7 @@ export class UserController {
   async updateUserProfile(@Param('userid') id: string, @Body() updateUserDto: updateuserDto,@I18n() i18n: I18nContext) {
     try {
       const updatedUser = await this.userService.updateUserProfile(id, updateUserDto);
-      return { message: 'User profile updated successfully', user: updatedUser };
+      return { message: i18n.t('test.Userprofileupdatedsuccessfully'), user: updatedUser };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(i18n.t("test.user not found"));
@@ -243,28 +253,68 @@ export class UserController {
       throw error;
     }
   }
-  //verifying the otp of 2fa
-  @Post('/verify-otp')
-  async verifyOTP(@Body() verifyDto: VerifyDto) {
-    // Retrieve the user from the database based on the email
-    const user = await this.userService.findOneByEmail(verifyDto.email);
-    console.log("user ",user.secretKey)
 
-    if (!user || !user.secretKey) {
-      throw new HttpException('Invalid user or 2FA not enabled', HttpStatus.BAD_REQUEST);
+
+  // //verifying the otp of 2fa
+  // @Post('/verify-otp')
+  // async verifyOTP(@Body() verifyDto: VerifyDto) {
+  //   // Retrieve the user from the database based on the email
+  //   const user = await this.userService.findOneByEmail(verifyDto.email);
+  //   console.log("user ",user.secretKey)
+
+  //   if (!user || !user.secretKey) {
+  //     throw new HttpException('Invalid user or 2FA not enabled', HttpStatus.BAD_REQUEST);
+  //   }
+
+  //   const verified = speakeasy.totp.verify({
+  //     secret: user.secretKey,
+  //     encoding: 'ascii',
+  //     token: verifyDto.otp,
+  //   });
+  //   console.log("kfkbkwfkjw",verified)
+  //   if (!verified) {
+  //     throw new HttpException('Invalid OTP code', HttpStatus.BAD_REQUEST);
+  //   }
+  //   return { message: 'OTP verification successful' };
+  // }
+
+
+   ///set two factor authentication ,generation of secretkey out side of the log in 
+  //and verify inside the login
+  @Post('/generateqrcode')
+  async generatesecretkey2fa(@Body() loginDto: CreateUserDto,@I18n() i18n: I18nContext) {
+    const {email}= loginDto;
+    const user= await this.userModel.findOne({email})
+
+    if (user.hasTwoFactorAuth === true) {
+      if (!user.secretKey) {
+        const secret = speakeasy.generateSecret();
+        const otpauth_url = speakeasy.otpauthURL({
+          secret: secret.base32,
+          label: user.email,
+          issuer: 'google_authenticator',
+        });
+    
+        user.secretKey = secret.base32;
+        // user.otpauthUrl = otpauth_url;
+        await user.save();
+        const qrCodeImage = await qrcode.toDataURL(otpauth_url);
+         // Convert the base64 image to binary data
+    const imageData = qrCodeImage.replace(/^data:image\/png;base64,/, '');
+
+    // Save the image to a file
+    const imagePath = '/home/admin96/Videos/appinventive_projects/virtual_event_management_system/App_projects_/src/modules/user/qrcode.png'; // Change the path as needed
+    await fs.writeFile(imagePath, imageData, 'base64');
+    
+        return { message: i18n.t('test.PleasescantheQRcodewithyourauthenticatorapp'), qrCodeImage };
+      }
+      return { message: i18n.t('test.PleaseprovideOTPcode')};
     }
 
-    const verified = speakeasy.totp.verify({
-      secret: user.secretKey,
-      encoding: 'ascii',
-      token: verifyDto.otp,
-    });
-    console.log("kfkbkwfkjw",verified)
-    if (!verified) {
-      throw new HttpException('Invalid OTP code', HttpStatus.BAD_REQUEST);
-    }
-    return { message: 'OTP verification successful' };
+
+
   }
 
-  
+
+
 }

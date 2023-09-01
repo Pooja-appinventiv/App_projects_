@@ -9,6 +9,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import path from 'path';
+import { ConfigModule } from '@nestjs/config';
 import {
   AcceptLanguageResolver,
   I18nJsonLoader,
@@ -19,8 +20,11 @@ import { RabbitMQService } from './modules/rabbitmq/rabbitmq.service';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     MongooseModule.forRoot(
-      'mongodb+srv://poojaa:123@cluster0.pf0tywt.mongodb.net/virtual_event_db',
+      process.env.DB_LINK,
     ),
     UserModule,
     AdminModule,
@@ -54,3 +58,4 @@ export class AppModule {
     
   }
 }
+ConfigModule.forRoot()

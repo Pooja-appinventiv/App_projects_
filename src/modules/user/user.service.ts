@@ -5,14 +5,11 @@ import { user } from './user.schema';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto, ResetPasswordDto } from './dto/createuserdetails';
 import { MailerService } from '@nestjs-modules/mailer';
-// import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { updateuserDto } from './dto/updatedto';
-import { VerifyDto } from './dto/createuserdetails';
-// import * as speakeasy from 'speakeasy';
-// import * as qrcode from 'qrcode';
-// import { Event } from './eventschema';
+import * as speakeasy from 'speakeasy'; 
+
 @Injectable()
 export class UserService {
   getUserById(user_id: any) {
@@ -30,6 +27,15 @@ export class UserService {
   async findall(): Promise<user[]> {
     const users = await this.userModel.find();
     return users;
+  }
+  //signup
+  async isUsernameTaken(username: string): Promise<boolean> {
+    const existingUser = await this.userModel.findOne({ username });
+    return !!existingUser;
+  }
+  async isEmailTaken(email: string): Promise<boolean> {
+    const existingUser = await this.userModel.findOne({ email });
+    return !!existingUser;
   }
   async createUser(user_details: CreateUserDto): Promise<user> {
     const saltRounds = 10;
@@ -112,6 +118,16 @@ export class UserService {
     const user = await this.userModel.findOne({ email });
     // console.log(user)
     return user;
+  }
+  async verifyOTP(user: user, otp: string): Promise<boolean> {
+    console.log(user,otp)
+    const verified = speakeasy.totp.verify({
+      secret: user.secretKey,
+      encoding: 'ascii',
+      token: otp,
+    });
+  
+    return verified;
   }
 
 

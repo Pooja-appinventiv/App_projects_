@@ -17,6 +17,7 @@ import { admin } from './adminschema';
 import { JwtAuthGuard } from 'src/middleware/jwt.auth.guard';
 import { ApiBody, ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { I18n, I18nContext } from 'nestjs-i18n';
 // import { Roles } from './decorator/role.decorator';
 @ApiTags('admin')
 @Controller('admin')
@@ -31,9 +32,9 @@ export class AdminController {
     description: 'User registered successfully',
   })
   @ApiBody({ type: CreateadminDto })
-  async signup(@Body() admin_details: CreateadminDto) {
+  async signup(@Body() admin_details: CreateadminDto,@I18n() i18n: I18nContext) {
     const newadmin = await this.adminservice.createadmin(admin_details);
-    return { message: 'admin registered successfully', admin: newadmin };
+    return { message: i18n.t('test.adminregisteredsuccessfully'), admin: newadmin };
   }
   @Post('/login')
   @ApiBody({ type: CreateadminDto })
@@ -46,7 +47,7 @@ export class AdminController {
     status: 401,
     description: 'Unauthorized',
   })
-  async login(@Body() loginDto: CreateadminDto) {
+  async login(@Body() loginDto: CreateadminDto,@I18n() i18n: I18nContext) {
     const admin = await this.adminservice.loginadmin(loginDto.email);
     console.log(admin);
     const isPasswordValid = await bcrypt.compare(
@@ -64,9 +65,9 @@ export class AdminController {
     };
 
     const token = this.jwtService.sign(payload);
-    return { message: 'Login successful', admin, token };
+    return { message: i18n.t('test.AdminLoggedinsuccessfully'), admin, token };
   }
-  @UseGuards(AuthGuard('basic'))
+  // @UseGuards(AuthGuard('basic'))
   @Get('/getall')
   @ApiResponse({
     status: 200,

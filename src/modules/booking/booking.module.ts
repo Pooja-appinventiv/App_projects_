@@ -6,10 +6,12 @@ import { Booking, BookingSchema } from './bookingschema';
 import { EventModule } from 'src/modules/event/event.module';
 import { EmailService } from './emailservice';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { EventSchema } from '../event/eventschema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Booking.name, schema: BookingSchema }]),
+    MongooseModule.forFeature([{ name: Booking.name, schema: BookingSchema },
+      { name: Event.name, schema: EventSchema },]),
     EventModule,
   ],
   controllers: [BookingController],

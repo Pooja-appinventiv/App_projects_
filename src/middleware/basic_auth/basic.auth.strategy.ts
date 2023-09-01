@@ -12,8 +12,8 @@ export class BasicAuthGuard extends PassportStrategy(BasicStrategy) {
   async validate(Username: string, Password: string): Promise<any> {
     const user = await this.authService.validateUser(Username, Password);
     // console.log(user)
-    console.log(Username, Password);
-    console.log('ekrgnekgnk');
+    // console.log(Username, Password);
+    // console.log('ekrgnekgnk');
     if (!user) {
       throw new UnauthorizedException();
     }

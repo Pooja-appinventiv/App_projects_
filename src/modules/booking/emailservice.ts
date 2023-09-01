@@ -24,16 +24,16 @@ export class EmailService {
     await this.mailerService.sendMail(mailOptions);
   }
 
-  async sendEventReminder(userEmail: string, eventName: string): Promise<void> {
-    const mailOptions = {
-      from: 'your@email.com',
-      to: userEmail,
-      subject: 'Event Reminder',
-      html: `<p>Dear user,</p>
-             <p>Just a reminder that the event "${eventName}" is about to start soon.</p>
-             <p>Event details: ...</p>`,
-    };
-  }
+  // async sendEventReminder(userEmail: string, eventName: string): Promise<void> {
+  //   const mailOptions = {
+  //     from: 'your@email.com',
+  //     to: userEmail,
+  //     subject: 'Event Reminder',
+  //     html: `<p>Dear user,</p>
+  //            <p>Just a reminder that the event "${eventName}" is about to start soon.</p>
+  //            <p>Event details: ...</p>`,
+  //   };
+  // }
 
   async sendBookingPDF(receiverEmail: string, pdfBuffer: Buffer) {
     const mailOptions = {
@@ -66,4 +66,25 @@ export class EmailService {
       throw error;
     }
   }
+  async sendEventReminder(userEmail: string, eventName: string): Promise<void> {
+    const mailOptions = {
+      from: 'poojantech11@gmail.com', 
+      to: userEmail,
+      subject: 'Event Reminder',
+      html: `
+        <p>Dear user,</p>
+        <p>Just a reminder that the event "${eventName}" is about to start soon.</p>
+        <p>Event details: ...</p>`,
+    };
+
+    try {
+      await this.mailerService.sendMail(mailOptions);
+      console.log('Event reminder email sent successfully.');
+    } catch (error) {
+      console.error('Error sending event reminder email:', error);
+      throw error;
+    }
+  }
+
 }
+

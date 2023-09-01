@@ -29,18 +29,6 @@ export class BookingService {
 
     return savedBooking
   }
-  async getUpcomingEventsWithinHour(): Promise<any> {
-    const currentTime = new Date();
-    const oneHourLater = new Date(currentTime.getTime() + 60 * 60 * 1000); 
-
-    const upcomingEvents = await this.bookingModel
-      .find({
-        'event.start_time': { $gt: currentTime, $lt: oneHourLater },
-      })
-
-    return upcomingEvents.map(booking => booking.event);
-  }
-
 
   async convertBookingDataToPDF(bookingData): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {

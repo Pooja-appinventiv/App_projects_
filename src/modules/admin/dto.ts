@@ -1,7 +1,8 @@
-import { IsNotEmpty, IsEmail, MinLength } from 'class-validator';
+import { IsNotEmpty, IsEmail, MinLength, IsOptional } from 'class-validator';
 //data transfer objects
 export class CreateadminDto {
   @IsNotEmpty()
+  @IsOptional()
   username: string;
 
   @IsNotEmpty()
