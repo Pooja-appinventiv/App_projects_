@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto_booking/booking_dto';
 import { EventService } from 'src/modules/event/event.service';
@@ -9,10 +9,12 @@ import { EmailService } from './emailservice';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as cron from 'node-cron'; 
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 // import { Cron } from 'node-cron';
 
 @ApiTags('bookings')
 @Controller('booking')
+@UseInterceptors(ErrorInterceptor)
 export class BookingController {
  
   constructor(
@@ -49,10 +51,8 @@ export class BookingController {
   async createBooking(@Body() createBookingDto: CreateBookingDto,@I18n() i18n: I18nContext) {
     const { user_id, event_id,email, event_name,start_time} = createBookingDto;
     const data=await this.bookingservice.createBooking(user_id, event_id);
-    console.log(data)
     await this.emailservice.sendBookingConfirmation(email, event_name);
-
-  //node cron
+    //node cron
     const eventStartTime = new Date(start_time);
     const reminderTime = new Date(eventStartTime.getTime() - 2 * 60 * 1000);
     console.log(reminderTime)

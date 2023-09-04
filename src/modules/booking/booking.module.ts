@@ -7,6 +7,7 @@ import { EventModule } from 'src/modules/event/event.module';
 import { EmailService } from './emailservice';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { EventSchema } from '../event/eventschema';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 
 @Module({
   imports: [
@@ -15,6 +16,6 @@ import { EventSchema } from '../event/eventschema';
     EventModule,
   ],
   controllers: [BookingController],
-  providers: [BookingService, BookingModule,EmailService,RabbitMQService],
+  providers: [BookingService, BookingModule,EmailService,RabbitMQService,ErrorInterceptor],
 })
 export class BookingModule {}

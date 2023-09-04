@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UseInterceptors } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer'; // Import only MailerService
+// import { ErrorInterceptor } from 'src/error/error.interceptor';
 
 @Injectable()
+// @UseInterceptors(ErrorInterceptor)
 export class EmailService {
   constructor(private readonly mailerService: MailerService) {}
 
@@ -23,18 +25,6 @@ export class EmailService {
     };
     await this.mailerService.sendMail(mailOptions);
   }
-
-  // async sendEventReminder(userEmail: string, eventName: string): Promise<void> {
-  //   const mailOptions = {
-  //     from: 'your@email.com',
-  //     to: userEmail,
-  //     subject: 'Event Reminder',
-  //     html: `<p>Dear user,</p>
-  //            <p>Just a reminder that the event "${eventName}" is about to start soon.</p>
-  //            <p>Event details: ...</p>`,
-  //   };
-  // }
-
   async sendBookingPDF(receiverEmail: string, pdfBuffer: Buffer) {
     const mailOptions = {
       from: 'poojantech11@gmail.com',
@@ -74,9 +64,8 @@ export class EmailService {
       html: `
         <p>Dear user,</p>
         <p>Just a reminder that the event "${eventName}" is about to start soon.</p>
-        <p>Event details: ...</p>`,
+        <p>Thankyou</p>`,
     };
-
     try {
       await this.mailerService.sendMail(mailOptions);
       console.log('Event reminder email sent successfully.');

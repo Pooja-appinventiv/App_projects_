@@ -26,14 +26,13 @@ import { ApiBasicAuth, ApiBody, ApiHeader, ApiResponse, ApiTags } from '@nestjs/
 import { logoutDtoDto } from './dto/logoutDto';
 import { AuthGuard } from '@nestjs/passport';
 import { updateuserDto } from './dto/updatedto';
-import { ErrorInterceptor } from 'src/error/error.interceptor';
-// import { I18nService } from 'nestjs-i18n';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import * as fs from 'fs-extra';
 import mongoose from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 
 
 
@@ -48,6 +47,7 @@ export class UserController {
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache, // private readonly cacheManager: Cache,
   ) {}
+
   @Post('/signup')
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({
@@ -59,7 +59,7 @@ export class UserController {
     const isUsernameTaken = await this.userService.isUsernameTaken(username);
   const isEmailTaken = await this.userService.isEmailTaken(email);
   if (isUsernameTaken) {
-    return {message: i18n.t('test.Usernameisalreadytaken' )};
+    return {message: i18n.t('test.Usernameisalreadytaken')};
   }
   if (isEmailTaken) {
     return {message: i18n.t('test.Emailisalreadyregistered') };
@@ -105,7 +105,7 @@ export class UserController {
     );
 
     if (!isPasswordValid) {
-      throw new HttpException(i18n.t("test.unauthorize"), HttpStatus.UNAUTHORIZED);
+      throw new HttpException(i18n.t('test.unauthorize'), HttpStatus.UNAUTHORIZED);
     } 
     //token generationn
      
@@ -188,7 +188,7 @@ export class UserController {
   }
 
 
-  @UseGuards(AuthGuard('basic'))
+  // @UseGuards(AuthGuard('basic'))
   @Post('/generate-otp')
   @ApiResponse({
     status: 200,
@@ -196,19 +196,15 @@ export class UserController {
   })
   @ApiBody({ type: String, description: 'User email' })
   async generateOtp(@Body('email') email: string,@I18n() i18n: I18nContext) {
-    try {
-      await this.userService.generateOtp(email);
-
-      return { message: 'Otp send to email' };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException('Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    await this.userService.generateOtp(email);
+    return { message: 'OTP sent to email' };
   }
+
+
   @Post('/reset-password')
   @ApiResponse({
     status: 200,
-    description: 'Password reset successful',
+    description: 'Password reset successfully',
   })
   async resetPassword( @Body() resetPasswordDto: ResetPasswordDto,@I18n() i18n: I18nContext): Promise<{ message: string }> {
     const message = await this.userService.resetPassword(resetPasswordDto);
@@ -243,43 +239,11 @@ export class UserController {
   @Put(':userid/updateuser')
   @ApiBasicAuth()
   async updateUserProfile(@Param('userid') id: string, @Body() updateUserDto: updateuserDto,@I18n() i18n: I18nContext) {
-    try {
       const updatedUser = await this.userService.updateUserProfile(id, updateUserDto);
       return { message: i18n.t('test.Userprofileupdatedsuccessfully'), user: updatedUser };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw new NotFoundException(i18n.t("test.user not found"));
-      }
-      throw error;
-    }
   }
 
-
-  // //verifying the otp of 2fa
-  // @Post('/verify-otp')
-  // async verifyOTP(@Body() verifyDto: VerifyDto) {
-  //   // Retrieve the user from the database based on the email
-  //   const user = await this.userService.findOneByEmail(verifyDto.email);
-  //   console.log("user ",user.secretKey)
-
-  //   if (!user || !user.secretKey) {
-  //     throw new HttpException('Invalid user or 2FA not enabled', HttpStatus.BAD_REQUEST);
-  //   }
-
-  //   const verified = speakeasy.totp.verify({
-  //     secret: user.secretKey,
-  //     encoding: 'ascii',
-  //     token: verifyDto.otp,
-  //   });
-  //   console.log("kfkbkwfkjw",verified)
-  //   if (!verified) {
-  //     throw new HttpException('Invalid OTP code', HttpStatus.BAD_REQUEST);
-  //   }
-  //   return { message: 'OTP verification successful' };
-  // }
-
-
-   ///set two factor authentication ,generation of secretkey out side of the log in 
+  ///set two factor authentication ,generation of secretkey out side of the log in 
   //and verify inside the login
   @Post('/generateqrcode')
   async generatesecretkey2fa(@Body() loginDto: CreateUserDto,@I18n() i18n: I18nContext) {
@@ -310,10 +274,32 @@ export class UserController {
       }
       return { message: i18n.t('test.PleaseprovideOTPcode')};
     }
-
-
-
   }
+
+  // //verifying the otp of 2fa
+  // @Post('/verify-otp')
+  // async verifyOTP(@Body() verifyDto: VerifyDto) {
+  //   // Retrieve the user from the database based on the email
+  //   const user = await this.userService.findOneByEmail(verifyDto.email);
+  //   console.log("user ",user.secretKey)
+
+  //   if (!user || !user.secretKey) {
+  //     throw new HttpException('Invalid user or 2FA not enabled', HttpStatus.BAD_REQUEST);
+  //   }
+
+  //   const verified = speakeasy.totp.verify({
+  //     secret: user.secretKey,
+  //     encoding: 'ascii',
+  //     token: verifyDto.otp,
+  //   });
+  //   console.log("kfkbkwfkjw",verified)
+  //   if (!verified) {
+  //     throw new HttpException('Invalid OTP code', HttpStatus.BAD_REQUEST);
+  //   }
+  //   return { message: 'OTP verification successful' };
+  // }
+
+
 
 
 

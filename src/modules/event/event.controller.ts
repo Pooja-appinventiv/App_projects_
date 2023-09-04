@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { EventService } from './event.service';
 import { JwtAuthGuard } from 'src/middleware/jwt.auth.guard';
 import { EventDto } from './date_transfer_object/eventdto';
@@ -7,9 +7,11 @@ import { Roles } from './decorator/role.decorator';
 import { RolesGuard } from './decorator/roles.guard';
 import { ApiBody, ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 
 @ApiTags('events')
 @Controller('event')
+@UseInterceptors(ErrorInterceptor)
 export class EventController {
   constructor(private readonly eventservice: EventService) {}
 
@@ -61,7 +63,6 @@ export class EventController {
     description: 'User profile data',
   })
   async getUserEvents(@Req() req): Promise<Event[]> {
-    console.log(req.user);
     return this.eventservice.findEventsByUserAttendee(req.user._id); // Use _id
   }
   // @UseGuards(JwtAuthGuard)

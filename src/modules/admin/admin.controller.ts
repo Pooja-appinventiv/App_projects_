@@ -7,6 +7,7 @@ import {
   Get,
   UseGuards,
   Req,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateadminDto } from './dto';
@@ -18,9 +19,11 @@ import { JwtAuthGuard } from 'src/middleware/jwt.auth.guard';
 import { ApiBody, ApiHeader, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { I18n, I18nContext } from 'nestjs-i18n';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 // import { Roles } from './decorator/role.decorator';
 @ApiTags('admin')
 @Controller('admin')
+@UseInterceptors(ErrorInterceptor)
 export class AdminController {
   constructor(
     public adminservice: AdminService,

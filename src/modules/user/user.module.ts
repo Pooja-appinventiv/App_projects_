@@ -10,6 +10,7 @@ import { EventSchema } from 'src/modules/event/eventschema';
 import { AuthService } from 'src/middleware/basic_auth/basic.auth.guard';
 import { BasicAuthGuard } from 'src/middleware/basic_auth/basic.auth.strategy';
 import { ConfigModule } from '@nestjs/config';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 ConfigModule.forRoot()
 
 @Module({
@@ -37,7 +38,7 @@ ConfigModule.forRoot()
     }),
   ],
   controllers: [UserController],
-  providers: [UserService, JwtStrategy,AuthService, BasicAuthGuard,],
+  providers: [UserService, JwtStrategy,AuthService, BasicAuthGuard,ErrorInterceptor],
 })
 export class UserModule {
   constructor() {

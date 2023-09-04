@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
-// import { Admin, admin_schema } from './admin.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { admin, admin_schema } from './adminschema';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from 'src/middleware/jwt.strategy';
 import { ConfigModule } from '@nestjs/config';
+import { ErrorInterceptor } from 'src/interceptor/error.interceptor';
 ConfigModule.forRoot()
 @Module({
   imports: [
@@ -17,7 +17,7 @@ ConfigModule.forRoot()
     }),
   ],
   controllers: [AdminController],
-  providers: [AdminService, JwtStrategy],
+  providers: [AdminService, JwtStrategy,ErrorInterceptor],
 })
 export class AdminModule {
   constructor() {

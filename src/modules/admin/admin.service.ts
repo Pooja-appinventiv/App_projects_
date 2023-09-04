@@ -10,6 +10,7 @@ export class AdminService {
     @InjectModel(admin.name)
     private adminModel: mongoose.Model<admin>,
   ) {}
+
   async createadmin(admin_details: CreateadminDto): Promise<admin> {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(
@@ -22,11 +23,14 @@ export class AdminService {
     });
     return createdadmin.save();
   }
+
   async loginadmin(email: string): Promise<admin> {
     return this.adminModel.findOne({ email }); // Use findOne to query for a admin by adminname
   }
+
   async findall(): Promise<admin[]> {
     const admins = await this.adminModel.find();
     return admins;
   }
+  
 }

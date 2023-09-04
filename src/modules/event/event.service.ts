@@ -12,10 +12,12 @@ export class EventService {
     @InjectModel(Event.name)
     private eventModel: mongoose.Model<Event>,
   ) {}
+
   async createEvent(eventDto: EventDto): Promise<Event> {
     const createdEvent = new this.eventModel(eventDto);
     return createdEvent.save();
   }
+
   async findall(): Promise<Event[]> {
     const events = await this.eventModel.find();
     return events;
@@ -26,6 +28,7 @@ export class EventService {
       { $addToSet: { attendees: userId } },
     );
   }
+  
   async findEventsByUserAttendee(userId: string): Promise<Event[]> {
     return this.eventModel.find({ attendees: userId }).exec();
   }
